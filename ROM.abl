@@ -1,0 +1,45 @@
+MODULE ROM
+
+TITLE  'ROM'
+
+
+DECLARATIONS
+
+" Input pins
+A0   pin   2;  " address bus
+A1   pin   3;
+A2   pin   4;
+A3   pin   5;
+!MRD pin  11;  " memory read enable (active low)
+!NO, !NC pin;
+
+" Output pins
+D0   pin 12 istype 'com';  " data bus
+D1   pin 13 istype 'com';
+D2   pin 14 istype 'com';
+BS   pin    istype 'com'; " bounceless switch
+
+TRUTH_TABLE ([A3,A2,A1,A0]->[D2,D1,D0])
+             [ 0, 0, 0, 0]->[ 0, 0, 0];   "IN
+             [ 0, 0, 0, 1]->[ 0, 0, 1];   "OUT
+             [ 0, 0, 1, 0]->[ 0, 1, 1];   "ANA
+             [ 0, 0, 1, 1]->[ 0, 0, 1];   "OUT
+             [ 0, 1, 0, 0]->[ 0, 1, 0];   "ORA
+             [ 0, 1, 0, 1]->[ 0, 0, 1];   "OUT
+             [ 0, 1, 1, 0]->[ 0, 0, 0];   "IN
+             [ 0, 1, 1, 1]->[ 0, 0, 1];   "OUT
+             [ 1, 0, 0, 0]->[ 1, 0, 1];   "ROR
+             [ 1, 0, 0, 1]->[ 0, 0, 1];   "OUT
+             [ 1, 0, 1, 0]->[ 1, 0, 0];   "ROL
+             [ 1, 0, 1, 1]->[ 0, 0, 1];   "OUT
+             [ 1, 1, 0, 0]->[ 1, 1, 1];   "ASR
+             [ 1, 1, 0, 1]->[ 0, 0, 1];   "OUT
+             [ 1, 1, 1, 0]->[ 1, 1, 0];   "ASL
+             [ 1, 1, 1, 1]->[ 0, 0, 1];   "OUT
+
+EQUATIONS
+
+BS = NO # !NC & BS; " Bounceless switch
+[D0..D2].OE = MRD;
+
+EN
