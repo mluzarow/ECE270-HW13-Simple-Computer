@@ -1,0 +1,137 @@
+MODULE COMPUTER
+TITLE 'Computer'
+
+DECLARATIONS
+
+CLOCK 	PIN  1; 	" System CLOCK input
+ARS     PIN  2;   " Asynchronous system reset
+
+"-----------------------------------------------------------------------
+"
+" Microsequencer state variable 
+"   SQ = 0 -> Fetch
+"   SQ = 1 -> Execute
+"
+" Note: SQ drives !MRD input of instruction ROM
+
+SQ 	PIN  24 istype 'reg_D,buffer';	" machine state
+
+"-----------------------------------------------------------------------
+"
+" Switch input port
+
+I3	PIN   8; 
+I2	PIN   9; 
+I1	PIN  10;
+I0	PIN  11;
+
+"-----------------------------------------------------------------------
+"
+" Latched opcode
+
+C2	PIN  25 istype 'reg_D,buffer';
+C1	PIN  26 istype 'reg_D,buffer';
+C0	PIN  27 istype 'reg_D,buffer';
+
+"-----------------------------------------------------------------------
+"
+" ALU / data display
+
+ALU0	PIN  19 istype 'reg_D,buffer';
+ALU1 	PIN  20 istype 'reg_D,buffer';
+ALU2 	PIN  22 istype 'reg_D,buffer';
+ALU3  PIN  23 istype 'reg_D,buffer';
+
+
+"-----------------------------------------------------------------------
+"
+" ROM data (instruction fetch) bus
+
+DB0	PIN  12;	" Input
+DB1	PIN  13;	" Input
+DB2	PIN  14;	" Input
+
+"-----------------------------------------------------------------------
+"
+" PC state / ROM address bus
+
+PC0	PIN  15 istype 'reg_D,buffer';
+PC1	PIN  16 istype 'reg_D,buffer';
+PC2	PIN  17 istype 'reg_D,buffer';
+PC3	PIN  18 istype 'reg_D,buffer';
+
+"-----------------------------------------------------------------------
+"
+" Internal system control signals (all a function of SQ)
+
+POA = !SQ;
+PCC = !SQ;
+IRL = !SQ;
+ALE =  SQ;
+
+"-----------------------------------------------------------------------
+"
+" Calculation conditions
+
+IN  = !C2 & !C1 & !C0; " Load value
+OUT = !C2 & !C1 &  C0; " Display loaded value
+ORA = !C2 &  C1 & !C0; " OR loaded value with inputs
+ANA = !C2 &  C1 &  C0; " AND loaded value with inputs
+ROL =  C2 & !C1 & !C0; " Rotate loaded value left
+ROR =  C2 & !C1 &  C0; " Rotate loaded value right
+ASL =  C2 &  C1 & !C0; " Shift loaded value left
+ASR =  C2 &  C1 &  C0; " Shift loaded value right
+
+"-----------------------------------------------------------------------
+"
+"
+
+EQUATIONS
+
+" Micro-sequencer...just a T flip flop
+ 
+SQ := !SQ;
+
+SQ.CLK = CLOCK;
+
+SQ.AR = ARS;
+
+
+" Equations for the Program Counter / Memory Address Bus
+
+PC0 := !PCC & PC0.Q # PCC & !PC0.Q;
+PC1 := !PCC & PC1.Q # PCC & (PC1.Q $ PC0.Q);
+PC2 := !PCC & PC2.Q # PCC & (PC2.Q $ (PC1.Q & PC0.Q));
+PC3 := !PCC & PC3.Q # PCC & (PC3.Q $ (PC2.Q & PC1.Q & PC0.Q));
+
+[PC0..PC3].OE = POA;
+
+[PC0..PC3].CLK = CLOCK;
+
+[PC0..PC3].AR = ARS;
+
+" Equations for the Instruction Register
+
+[C0..C2] := IRL & [DB0..DB2] # !IRL & [C0..C2];
+
+[C0..C2].CLK = CLOCK;
+
+[C0..C2].AR = ARS;
+
+" Next state equations for the ALU
+
+ALU0 := !ALE&ALU0 # ALE & (IN&I0 # OUT&ALU0 # ORA&(ALU0#I0) # ANA&(ALU0&I0) # ROL&ALU3 # ROR&ALU1 # ASL&0 # ASR&ALU1);        
+
+ALU1 := !ALE&ALU1 # ALE & (IN&I1 # OUT&ALU1 # ORA&(ALU1#I1) # ANA&(ALU1&I1) # ROL&ALU0 # ROR&ALU2 # ASL&ALU0 # ASR&ALU2);
+
+ALU2 := !ALE&ALU2 # ALE & (IN&I2 # OUT&ALU2 # ORA&(ALU2#I2) # ANA&(ALU2&I2) # ROL&ALU1 # ROR&ALU3 # ASL&ALU1 # ASR&ALU3);
+
+ALU3 := !ALE&ALU3 # ALE & (IN&I3 # OUT&ALU3 # ORA&(ALU3#I3) # ANA&(ALU3&I3) # ROL&ALU2 # ROR&ALU0 # ASL&ALU2 # ASR&ALU3);
+
+[ALU0..ALU3].OE = ALE & OUT;
+
+[ALU0..ALU3].CLK = CLOCK;
+
+[ALU0..ALU3].AR = ARS;
+
+END
