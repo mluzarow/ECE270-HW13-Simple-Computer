@@ -1,1 +1,3 @@
-# ECE270-HW13-Simple-Computer
+# Simple-Computer
+
+A simple computer written in ABEL, flashed onto two GAL chips.
